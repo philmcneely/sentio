@@ -40,9 +40,27 @@ pub struct DsnParams {
 // Bounce classification
 // ──────────────────────────────────────────────────────────────────────────────
 
-/// Classify a bounce from the SMTP response code.
-pub fn classify_bounce(code: u16, enhanced: Option<&str>) -> BounceClass {
-    // Check enhanced status code first.
+/// Classify a bounce from the SMTP response.
+///
+/// `response_text` is the full remote response body — scanned for
+/// DNSBL / reputation / policy keywords so a 5xx without an explicit
+/// enhanced code isn't mistaken for a "bad address" hard bounce and
+/// then auto-suppressed. Any sender-infra reject (Spamhaus, SORBS,
+/// "poor reputation", PBL/SBL/XBL, "blocked") must classify as Block.
+pub fn classify_bounce(
+    code: u16,
+    enhanced: Option<&str>,
+    response_text: Option<&str>,
+) -> BounceClass {
+    // Keyword scan first: sender-side infrastructure rejections should never
+    // be treated as recipient-fatal, regardless of code/enhanced.
+    if let Some(text) = response_text {
+        if is_sender_reputation_reject(text) {
+            return BounceClass::Block;
+        }
+    }
+
+    // Check enhanced status code next.
     if let Some(esc) = enhanced {
         if esc.starts_with("5.1.") {
             return BounceClass::Hard; // Bad address
@@ -61,6 +79,25 @@ pub fn classify_bounce(code: u16, enhanced: Option<&str>) -> BounceClass {
         500..=599 => BounceClass::Block,
         _ => BounceClass::Soft,
     }
+}
+
+/// True if the response text indicates the remote rejected us due to our
+/// sending infrastructure (DNSBL listing, poor reputation, policy), not
+/// due to anything about the recipient address. Such rejections are
+/// Block, not Hard — the recipient must not be auto-suppressed.
+fn is_sender_reputation_reject(text: &str) -> bool {
+    let t = text.to_ascii_lowercase();
+    const DNSBL_HINTS: &[&str] = &[
+        "spamhaus", "sorbs", "spamcop", "barracuda", "senderscore",
+        "pbl", "sbl", "xbl", "dnsbl", "rbl", "blacklist", "blocklist",
+    ];
+    const REPUTATION_HINTS: &[&str] = &[
+        "poor reputation", "bad reputation", "sender reputation",
+        "ip reputation", "blocked using", "listed by", "temporarily blocked",
+        "deferred due to reputation", "mail from this ip",
+    ];
+    DNSBL_HINTS.iter().any(|k| t.contains(k))
+        || REPUTATION_HINTS.iter().any(|k| t.contains(k))
 }
 
 /// Map a [`BounceClass`] to an RFC 3464 DSN action value.
@@ -261,19 +298,49 @@ mod tests {
 
     #[test]
     fn classify_bounce_hard() {
-        assert_eq!(classify_bounce(550, None), BounceClass::Hard);
-        assert_eq!(classify_bounce(550, Some("5.1.1")), BounceClass::Hard);
+        assert_eq!(classify_bounce(550, None, None), BounceClass::Hard);
+        assert_eq!(
+            classify_bounce(550, Some("5.1.1"), None),
+            BounceClass::Hard
+        );
     }
 
     #[test]
     fn classify_bounce_soft() {
-        assert_eq!(classify_bounce(450, None), BounceClass::Soft);
-        assert_eq!(classify_bounce(421, Some("4.7.0")), BounceClass::Soft);
+        assert_eq!(classify_bounce(450, None, None), BounceClass::Soft);
+        assert_eq!(
+            classify_bounce(421, Some("4.7.0"), None),
+            BounceClass::Soft
+        );
     }
 
     #[test]
     fn classify_bounce_block() {
-        assert_eq!(classify_bounce(550, Some("5.7.1")), BounceClass::Block);
+        assert_eq!(
+            classify_bounce(550, Some("5.7.1"), None),
+            BounceClass::Block
+        );
+    }
+
+    #[test]
+    fn classify_bounce_dnsbl_text_overrides_hard() {
+        let resp =
+            "550 rejected 213.164.219.19 is temporarily blocked. Contact support [pbl]";
+        assert_eq!(classify_bounce(550, None, Some(resp)), BounceClass::Block);
+        let resp2 = "550 Client host blocked using Spamhaus";
+        assert_eq!(classify_bounce(550, None, Some(resp2)), BounceClass::Block);
+        let resp3 = "554 Your access to this mail system has been rejected due to \
+                     the sending MTA's poor reputation.";
+        assert_eq!(classify_bounce(554, None, Some(resp3)), BounceClass::Block);
+    }
+
+    #[test]
+    fn classify_bounce_user_unknown_stays_hard() {
+        let resp = "550 5.1.1 User unknown";
+        assert_eq!(
+            classify_bounce(550, Some("5.1.1"), Some(resp)),
+            BounceClass::Hard
+        );
     }
 
     #[test]

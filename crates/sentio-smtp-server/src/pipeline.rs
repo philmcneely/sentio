@@ -481,7 +481,7 @@ where
 
         // Classify. Unparseable code → Hard so we stop retrying.
         let class = match (dsn.status_code, dsn.enhanced_status.as_deref()) {
-            (Some(code), enh) => classify_bounce(code, enh),
+            (Some(code), enh) => classify_bounce(code, enh, dsn.diagnostic.as_deref()),
             _ => BounceClass::Hard,
         };
 

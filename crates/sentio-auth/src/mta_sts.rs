@@ -199,9 +199,17 @@ impl Authenticator {
             });
         };
 
-        // 2. HTTPS fetch of the policy file.
+        // 2. HTTPS fetch of the policy file. Both connect/read and body-read
+        // are time-bounded: the default reqwest client has no timeout, and a
+        // slow or unresponsive policy server would otherwise stall the entire
+        // outbound delivery task indefinitely.
         let url = format!("https://mta-sts.{domain}/.well-known/mta-sts.txt");
-        let response = reqwest::get(&url).await.map_err(|e| {
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(10))
+            .connect_timeout(std::time::Duration::from_secs(5))
+            .build()
+            .map_err(|e| SentioError::Auth(format!("MTA-STS client build failed: {e}")))?;
+        let response = client.get(&url).send().await.map_err(|e| {
             SentioError::Auth(format!("MTA-STS policy fetch failed for {domain}: {e}"))
         })?;
 

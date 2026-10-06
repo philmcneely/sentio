@@ -388,13 +388,32 @@ where
             for rcpt in recipients {
                 match self.suppression_repo.check(tenant_id, rcpt).await {
                     Ok(true) => {
-                        debug!(rcpt, "recipient suppressed, skipping");
-                        outcomes.push((
-                            rcpt.clone(),
-                            DeliveryOutcome::Suppressed {
-                                reason: format!("{rcpt} is suppressed"),
-                            },
-                        ));
+                        info!(
+                            message_id = %message_id,
+                            rcpt,
+                            "recipient suppressed, dropping"
+                        );
+                        let outcome = DeliveryOutcome::Suppressed {
+                            reason: format!("{rcpt} is suppressed"),
+                        };
+                        // Record a Dropped event + webhook payload so the drop is
+                        // visible in message_events (otherwise suppressed sends
+                        // produce zero rows and the message appears "stuck").
+                        self.record_outcome(
+                            tenant_id,
+                            message_id,
+                            rcpt,
+                            &outcome,
+                            retry_count,
+                            &msg.envelope_from,
+                            first_queued_at,
+                            msg.dsn_ret.as_deref(),
+                            msg.dsn_envid.as_deref(),
+                            &msg.dsn_orcpt,
+                            msg,
+                        )
+                        .await;
+                        outcomes.push((rcpt.clone(), outcome));
                     }
                     Ok(false) => active_rcpts.push(rcpt.as_str()),
                     Err(e) => {
@@ -467,6 +486,14 @@ where
             .any(|(_, o)| matches!(o, DeliveryOutcome::Deferred { .. }))
         {
             Some(MessageStatus::Deferred)
+        } else if !outcomes.is_empty()
+            && outcomes
+                .iter()
+                .all(|(_, o)| matches!(o, DeliveryOutcome::Suppressed { .. }))
+        {
+            // Every recipient suppressed — mark the message terminal as Dropped
+            // so it does not remain in `queued` indefinitely with no events.
+            Some(MessageStatus::Dropped)
         } else {
             None
         };
@@ -569,22 +596,42 @@ where
         // Try each MX host in preference order.
         let mut last_error = None;
 
+        // Hard upper bound per MX attempt so no single await can hang the task.
+        // The individual SMTP command / handshake timeouts are stricter; this is
+        // a defensive backstop for any future await that lacks its own timeout.
+        let mx_attempt_timeout = std::time::Duration::from_secs(300);
+
         for mx_host in &mx_result.hosts {
-            match self
-                .try_mx_host(
+            let attempt = tokio::time::timeout(
+                mx_attempt_timeout,
+                self.try_mx_host(
                     mx_host, sender, recipients, message, &tls_req, dsn_ret, dsn_envid, dsn_notify,
                     dsn_orcpt,
-                )
-                .await
-            {
-                Ok(outcome) => return outcome,
-                Err(e) => {
+                ),
+            )
+            .await;
+
+            match attempt {
+                Ok(Ok(outcome)) => return outcome,
+                Ok(Err(e)) => {
                     warn!(
                         mx = %mx_host.hostname,
                         error = %e,
                         "MX host delivery failed, trying next"
                     );
                     last_error = Some(e.to_string());
+                }
+                Err(_) => {
+                    warn!(
+                        mx = %mx_host.hostname,
+                        timeout_secs = mx_attempt_timeout.as_secs(),
+                        "MX host delivery attempt timed out, trying next"
+                    );
+                    last_error = Some(format!(
+                        "MX {} attempt timed out after {}s",
+                        mx_host.hostname,
+                        mx_attempt_timeout.as_secs()
+                    ));
                 }
             }
         }
@@ -764,7 +811,25 @@ where
                         }
                     };
                     let (stream, _buf, conn_config, hostname) = conn.into_parts();
-                    match starttls_upgrade(stream, Arc::new(tls_config), &hostname).await {
+                    let tls_timeout = conn_config.command_timeout;
+                    let upgrade = match tokio::time::timeout(
+                        tls_timeout,
+                        starttls_upgrade(stream, Arc::new(tls_config), &hostname),
+                    )
+                    .await
+                    {
+                        Ok(r) => r,
+                        Err(_) => {
+                            return DeliveryOutcome::Deferred {
+                                response: "Relay STARTTLS handshake timeout".into(),
+                                remote_mta: host.to_string(),
+                                bounce_class: BounceClass::Soft,
+                                retry_count,
+                                next_retry_at: compute_next_retry(retry_count, &self.config),
+                            };
+                        }
+                    };
+                    match upgrade {
                         Ok((tls_stream, _version)) => {
                             let (mut tls_conn, _) = match SmtpConnection::new(
                                 tls_stream,
@@ -941,7 +1006,14 @@ where
                     .map_err(|e| smtp_err(format!("TLS config error: {e}")))?;
                 let (stream, read_buf, conn_config, hostname) = conn.into_parts();
 
-                match starttls_upgrade(stream, Arc::new(tls_config), &hostname).await {
+                let tls_timeout = conn_config.command_timeout;
+                let upgrade = tokio::time::timeout(
+                    tls_timeout,
+                    starttls_upgrade(stream, Arc::new(tls_config), &hostname),
+                )
+                .await
+                .map_err(|_| smtp_err("STARTTLS handshake timeout"))?;
+                match upgrade {
                     Ok((tls_stream, _version)) => {
                         // RFC 3207: after STARTTLS, the server does NOT send a new greeting.
                         // Use from_upgraded to skip greeting read.
@@ -1519,7 +1591,29 @@ where
             "processing outbound delivery"
         );
 
-        let outcomes = self.deliver(&msg, retry_count, first_queued_at).await;
+        // Hard upper bound on the delivery attempt. If any await inside
+        // deliver() hangs (unresponsive peer stalling an unprotected network
+        // call), this prevents the task from leaking indefinitely and holding
+        // resources (pool permits, DB connections). On elapsed we return
+        // RetryAfter so JetStream re-delivers after a backoff.
+        const HANDLER_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(600);
+
+        let outcomes = match tokio::time::timeout(
+            HANDLER_TIMEOUT,
+            self.deliver(&msg, retry_count, first_queued_at),
+        )
+        .await
+        {
+            Ok(o) => o,
+            Err(_) => {
+                error!(
+                    message_id = %msg.message_id,
+                    timeout_secs = HANDLER_TIMEOUT.as_secs(),
+                    "delivery handler exceeded hard timeout; re-queueing for retry"
+                );
+                return HandlerResult::RetryAfter(std::time::Duration::from_secs(300));
+            }
+        };
 
         for (_, outcome) in &outcomes {
             match outcome {
@@ -1533,7 +1627,7 @@ where
                     warn!(message_id = %msg.message_id, response, "bounced");
                 }
                 DeliveryOutcome::Suppressed { reason } => {
-                    debug!(message_id = %msg.message_id, reason, "suppressed");
+                    info!(message_id = %msg.message_id, reason, "suppressed");
                 }
             }
         }
@@ -1599,7 +1693,8 @@ fn classify_response(resp: &SmtpResponse, remote_mta: &str) -> DeliveryOutcome {
             remote_mta: remote_mta.to_string(),
         }
     } else if resp.is_transient() {
-        let bounce_class = classify_bounce(resp.code, resp.enhanced.as_deref());
+        let bounce_class =
+            classify_bounce(resp.code, resp.enhanced.as_deref(), Some(&response_text));
         DeliveryOutcome::Deferred {
             response: response_text,
             remote_mta: remote_mta.to_string(),
@@ -1608,7 +1703,8 @@ fn classify_response(resp: &SmtpResponse, remote_mta: &str) -> DeliveryOutcome {
             next_retry_at: Utc::now(),
         }
     } else {
-        let bounce_class = classify_bounce(resp.code, resp.enhanced.as_deref());
+        let bounce_class =
+            classify_bounce(resp.code, resp.enhanced.as_deref(), Some(&response_text));
         DeliveryOutcome::Bounced {
             response: response_text,
             remote_mta: remote_mta.to_string(),
