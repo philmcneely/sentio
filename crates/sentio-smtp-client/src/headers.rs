@@ -88,16 +88,31 @@ pub fn classify_bounce(
 fn is_sender_reputation_reject(text: &str) -> bool {
     let t = text.to_ascii_lowercase();
     const DNSBL_HINTS: &[&str] = &[
-        "spamhaus", "sorbs", "spamcop", "barracuda", "senderscore",
-        "pbl", "sbl", "xbl", "dnsbl", "rbl", "blacklist", "blocklist",
+        "spamhaus",
+        "sorbs",
+        "spamcop",
+        "barracuda",
+        "senderscore",
+        "pbl",
+        "sbl",
+        "xbl",
+        "dnsbl",
+        "rbl",
+        "blacklist",
+        "blocklist",
     ];
     const REPUTATION_HINTS: &[&str] = &[
-        "poor reputation", "bad reputation", "sender reputation",
-        "ip reputation", "blocked using", "listed by", "temporarily blocked",
-        "deferred due to reputation", "mail from this ip",
+        "poor reputation",
+        "bad reputation",
+        "sender reputation",
+        "ip reputation",
+        "blocked using",
+        "listed by",
+        "temporarily blocked",
+        "deferred due to reputation",
+        "mail from this ip",
     ];
-    DNSBL_HINTS.iter().any(|k| t.contains(k))
-        || REPUTATION_HINTS.iter().any(|k| t.contains(k))
+    DNSBL_HINTS.iter().any(|k| t.contains(k)) || REPUTATION_HINTS.iter().any(|k| t.contains(k))
 }
 
 /// Map a [`BounceClass`] to an RFC 3464 DSN action value.
@@ -299,19 +314,13 @@ mod tests {
     #[test]
     fn classify_bounce_hard() {
         assert_eq!(classify_bounce(550, None, None), BounceClass::Hard);
-        assert_eq!(
-            classify_bounce(550, Some("5.1.1"), None),
-            BounceClass::Hard
-        );
+        assert_eq!(classify_bounce(550, Some("5.1.1"), None), BounceClass::Hard);
     }
 
     #[test]
     fn classify_bounce_soft() {
         assert_eq!(classify_bounce(450, None, None), BounceClass::Soft);
-        assert_eq!(
-            classify_bounce(421, Some("4.7.0"), None),
-            BounceClass::Soft
-        );
+        assert_eq!(classify_bounce(421, Some("4.7.0"), None), BounceClass::Soft);
     }
 
     #[test]
@@ -324,8 +333,7 @@ mod tests {
 
     #[test]
     fn classify_bounce_dnsbl_text_overrides_hard() {
-        let resp =
-            "550 rejected 213.164.219.19 is temporarily blocked. Contact support [pbl]";
+        let resp = "550 rejected 213.164.219.19 is temporarily blocked. Contact support [pbl]";
         assert_eq!(classify_bounce(550, None, Some(resp)), BounceClass::Block);
         let resp2 = "550 Client host blocked using Spamhaus";
         assert_eq!(classify_bounce(550, None, Some(resp2)), BounceClass::Block);
