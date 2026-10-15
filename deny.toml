@@ -33,10 +33,6 @@ ignore = [
     # TLS to the object store, not SMTP: Sentio's own listeners and delivery
     # client are on rustls 0.23. Fixing means getting the AWS SDK off its
     # legacy client, which is tracked separately.
-    { id = "RUSTSEC-2026-0258", reason = "h2 0.3 via aws-smithy-http-client; S3 client path only" },
-    { id = "RUSTSEC-2026-0098", reason = "rustls-webpki 0.101 via aws-smithy-http-client; S3 client path only" },
-    { id = "RUSTSEC-2026-0099", reason = "rustls-webpki 0.101 via aws-smithy-http-client; S3 client path only" },
-    { id = "RUSTSEC-2026-0104", reason = "rustls-webpki 0.101 via aws-smithy-http-client; S3 client path only" },
 
     # Deprecated in favour of rustls-pki-types' own PEM parsing. Not a
     # vulnerability; migration is a small change in the TLS loader.

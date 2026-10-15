@@ -114,7 +114,18 @@ futures = "0.3"
 
 # Blob storage (S3-compatible: AWS S3, R2, B2, MinIO, SeaweedFS, Ceph, …)
 aws-config = { version = "1", features = ["behavior-version-latest"] }
-aws-sdk-s3 = "1"
+# default-features = false drops the "rustls" feature, which maps to
+# aws-smithy-runtime/tls-rustls -> aws-smithy-http-client/legacy-rustls-ring
+# and pins rustls 0.21 alongside the modern one. 0.21 is EOL and carries
+# RUSTSEC-2026-0346/0349 with no fix on that line. "default-https-client"
+# already provides HTTPS via rustls 0.23 (aws-lc), so the legacy stack was
+# redundant. Everything else here is aws-sdk-s3's own default set.
+aws-sdk-s3 = { version = "1", default-features = false, features = [
+    "sigv4a",
+    "http-1x",
+    "default-https-client",
+    "rt-tokio",
+] }
 aws-credential-types = "1"
 aws-smithy-types = "1"
 
