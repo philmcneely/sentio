@@ -36,6 +36,15 @@ name: sentio-oss
 
 x-sentio-env: &sentio-env
   RUST_LOG: info
+  # migrations/002_bootstrap.sql seeds a publicly-known admin key so the stack
+  # is usable immediately, and the server otherwise refuses to start while that
+  # key is active. The two cannot both hold on a first run: you cannot rotate
+  # the key through the API before the server will boot. This stack is for
+  # evaluation, so it starts with the guard lifted and tells you to rotate.
+  #
+  # Rotate before this stack is reachable by anything but you - see "Bootstrap
+  # credentials" in the README. A real deployment should not set this.
+  SENTIO_ALLOW_BOOTSTRAP_KEY: "1"
   SENTIO__DATABASE__URL: "postgres://sentio:sentio@postgres:5432/sentio"
   SENTIO__KV__BACKEND: "redis"
   SENTIO__REDIS__URL: "redis://redis:6379/0"

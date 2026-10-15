@@ -121,11 +121,36 @@ wildcard (`*`) scope. Create a replacement via
 
 **The server refuses to start while this key is active** (and refuses to start
 if its status cannot be verified, e.g. the database is unreachable). To start
-anyway - for recovery or single-user evaluation - set:
+anyway - for recovery or evaluation - set:
 
 ```bash
 SENTIO_ALLOW_BOOTSTRAP_KEY=1
 ```
+
+The compose stack sets that already, because the guard and the seeded key
+cannot both hold on a first run: you cannot rotate a key through an API that
+refuses to start. So `docker compose up -d` boots with a publicly-known admin
+key and the guard lifted. **Rotate it before that stack is reachable by
+anything but you**, and drop `SENTIO_ALLOW_BOOTSTRAP_KEY` from
+`docker-compose.yml` once you have:
+
+```bash
+T=00000000-0000-0000-0000-000000000001   # admin tenant, and the bootstrap key's id
+
+# 1. mint a replacement; raw_key is returned once and never again
+NEW=$(curl -s -X POST -H "Authorization: Bearer sentio_bootstrap_admin_CHANGE_ME" \
+  -H 'Content-Type: application/json' -d '{"name":"admin","scopes":["*"]}' \
+  "localhost:8080/v1/tenants/$T/api-keys" \
+  | python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["raw_key"])')
+echo "$NEW"
+
+# 2. delete the bootstrap key, authenticating with the new one
+curl -X DELETE -H "Authorization: Bearer $NEW" \
+  "localhost:8080/v1/tenants/$T/api-keys/$T"
+```
+
+A manual install has no such exemption: rotate first, or set the variable for
+the one boot you need to do it in.
 
 If the shutdown catches you before rotation, rotate manually via SQL, then
 start normally:
