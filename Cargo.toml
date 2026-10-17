@@ -70,7 +70,17 @@ webpki-roots = "1"
 
 # Email parsing and auth
 mail-parser = "0.11.2"
-mail-auth = { version = "0.13", features = ["arc"] }
+# default drops "report": it is DMARC aggregate report parsing, which pulls in
+# zip, and three RUSTSEC advisories stand against the zip 8 line that mail-auth
+# pins (2026-0367, -0368, -0369) with no fix below zip 9. We verify DKIM, SPF,
+# DMARC and ARC and never extract an archive, so the feature was dead weight.
+# aws-lc-rs and dns-hickory are default's other two, kept: aws-lc-rs matches the
+# provider src/main.rs installs, and dns-hickory is the resolver.
+mail-auth = { version = "0.13", default-features = false, features = [
+    "arc",
+    "aws-lc-rs",
+    "dns-hickory",
+] }
 mail-builder = "1.0"
 
 # Networking

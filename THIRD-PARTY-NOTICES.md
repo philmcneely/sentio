@@ -10325,7 +10325,7 @@ limitations under the License.
 
 ## Apache License 2.0
 
-Used by `allocator-api2 0.2.21`, `async-nats 0.50.0`, `async-trait 0.1.92`, `aws-config 1.12.0`, `aws-credential-types 1.3.0`, `aws-lc-sys 0.46.0`, `aws-runtime 1.10.0`, `aws-sigv4 1.6.0`, `aws-smithy-async 1.3.0`, `aws-smithy-checksums 0.65.0`, `aws-smithy-eventstream 0.61.4`, `aws-smithy-http-client 1.5.0`, `aws-smithy-http 0.64.1`, `aws-smithy-json 0.63.1`, `aws-smithy-observability 0.3.0`, `aws-smithy-query 0.62.1`, `aws-smithy-runtime-api-macros 1.1.0`, `aws-smithy-runtime-api 1.19.0`, `aws-smithy-runtime 1.16.0`, `aws-smithy-schema 0.2.1`, `aws-smithy-types 1.8.1`, `aws-smithy-xml 0.62.1`, `aws-types 1.6.0`, `dyn-clone 1.0.20`, `ident_case 1.0.1`, `itoa 1.0.18`, `libc 0.2.190`, `metrics-exporter-prometheus 0.18.3`, `miniz_oxide 0.9.1`, `num-conv 0.2.2`, `pastey 0.2.3`, `pin-project-internal 1.1.13`, `pin-project-lite 0.2.17`, `pin-project 1.1.13`, `portable-atomic 1.15.0`, `proc-macro2 1.0.107`, `quote 1.0.47`, `rand 0.10.3`, `rand 0.8.8`, `rand 0.9.5`, `rand_chacha 0.9.0`, `rand_xoshiro 0.7.0`, `ref-cast-impl 1.0.27`, `ref-cast 1.0.27`, `rmcp-macros 3.5.1`, `rmcp 3.5.1`, `rustversion 1.0.23`, `ryu 1.0.23`, `serde 1.0.229`, `serde_core 1.0.229`, `serde_derive 1.0.229`, `serde_derive_internals 0.30.0`, `serde_json 1.0.154`, `serde_nanos 0.1.4`, `serde_path_to_error 0.1.20`, `serde_repr 0.1.21`, `serde_urlencoded 0.7.1`, `simdutf8 0.1.5`, `sqlx-core 0.9.0`, `sqlx-macros-core 0.9.0`, `sqlx-macros 0.9.0`, `sqlx-postgres 0.9.0`, `syn 2.0.119`, `syn 3.0.9`, `sync_wrapper 1.0.2`, `tagptr 0.2.0`, `thiserror-impl 2.0.21`, `thiserror 2.0.21`, `time-core 0.1.9`, `time 0.3.55`, `typed-path 0.12.3`, `unicode-ident 1.0.27`, `utf8parse 0.2.2`, `whoami 2.1.3`
+Used by `allocator-api2 0.2.21`, `async-nats 0.50.0`, `async-trait 0.1.92`, `aws-config 1.12.0`, `aws-credential-types 1.3.0`, `aws-lc-sys 0.46.0`, `aws-runtime 1.10.0`, `aws-sigv4 1.6.0`, `aws-smithy-async 1.3.0`, `aws-smithy-checksums 0.65.0`, `aws-smithy-eventstream 0.61.4`, `aws-smithy-http-client 1.5.0`, `aws-smithy-http 0.64.1`, `aws-smithy-json 0.63.1`, `aws-smithy-observability 0.3.0`, `aws-smithy-query 0.62.1`, `aws-smithy-runtime-api-macros 1.1.0`, `aws-smithy-runtime-api 1.19.0`, `aws-smithy-runtime 1.16.0`, `aws-smithy-schema 0.2.1`, `aws-smithy-types 1.8.1`, `aws-smithy-xml 0.62.1`, `aws-types 1.6.0`, `dyn-clone 1.0.20`, `ident_case 1.0.1`, `itoa 1.0.18`, `libc 0.2.190`, `metrics-exporter-prometheus 0.18.3`, `miniz_oxide 0.9.1`, `num-conv 0.2.2`, `pastey 0.2.3`, `pin-project-internal 1.1.13`, `pin-project-lite 0.2.17`, `pin-project 1.1.13`, `portable-atomic 1.15.0`, `proc-macro2 1.0.107`, `quote 1.0.47`, `rand 0.10.3`, `rand 0.8.8`, `rand 0.9.5`, `rand_chacha 0.9.0`, `rand_xoshiro 0.7.0`, `ref-cast-impl 1.0.27`, `ref-cast 1.0.27`, `rmcp-macros 3.5.1`, `rmcp 3.5.1`, `rustversion 1.0.23`, `ryu 1.0.23`, `serde 1.0.229`, `serde_core 1.0.229`, `serde_derive 1.0.229`, `serde_derive_internals 0.30.0`, `serde_json 1.0.154`, `serde_nanos 0.1.4`, `serde_path_to_error 0.1.20`, `serde_repr 0.1.21`, `serde_urlencoded 0.7.1`, `simdutf8 0.1.5`, `sqlx-core 0.9.0`, `sqlx-macros-core 0.9.0`, `sqlx-macros 0.9.0`, `sqlx-postgres 0.9.0`, `syn 2.0.119`, `syn 3.0.9`, `sync_wrapper 1.0.2`, `tagptr 0.2.0`, `thiserror-impl 2.0.21`, `thiserror 2.0.21`, `time-core 0.1.9`, `time 0.3.55`, `unicode-ident 1.0.27`, `utf8parse 0.2.2`, `whoami 2.1.3`
 
 ```
 Apache License
@@ -12804,7 +12804,7 @@ SOFTWARE.
 
 ## MIT License
 
-Used by `tracing-core 0.1.36`, `zip 8.6.0`
+Used by `tracing-core 0.1.36`
 
 ```
 The MIT License (MIT)
@@ -13006,37 +13006,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-```
-
-## MIT License
-
-Used by `quick-xml 0.42.0`
-
-```
-The MIT License (MIT)
-
-Copyright (c) 2016 Johann Tuffe
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the &quot;Software&quot;), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-
-THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
 
 ```
 
