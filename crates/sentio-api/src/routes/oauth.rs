@@ -104,6 +104,8 @@ pub async fn create_oauth_client(
     Json(body): Json<CreateOAuthClientRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
     auth.require_scope("oauth:write")?;
+    // A client cannot be given more reach than the session creating it.
+    auth.require_grantable(&body.scopes)?;
 
     if body.name.is_empty() {
         return Err(ApiError::Validation("name is required".into()));

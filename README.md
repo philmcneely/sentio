@@ -116,8 +116,9 @@ curl -H "Authorization: Bearer sentio_bootstrap_admin_CHANGE_ME" \
 ```
 
 Rotate this key before exposing the host to anything untrusted - it has
-wildcard (`*`) scope. Create a replacement via
-`POST /v1/tenants/{id}/api-keys`, then delete the bootstrap one.
+wildcard (`*`) scope and `platform:admin`, which together reach every tenant.
+Create a replacement via `POST /v1/tenants/{id}/api-keys`, then delete the
+bootstrap one.
 
 **The server refuses to start while this key is active** (and refuses to start
 if its status cannot be verified, e.g. the database is unreachable). To start
@@ -139,7 +140,8 @@ T=00000000-0000-0000-0000-000000000001   # admin tenant, and the bootstrap key's
 
 # 1. mint a replacement; raw_key is returned once and never again
 NEW=$(curl -s -X POST -H "Authorization: Bearer sentio_bootstrap_admin_CHANGE_ME" \
-  -H 'Content-Type: application/json' -d '{"name":"admin","scopes":["*"]}' \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"admin","scopes":["*","platform:admin"]}' \
   "localhost:8080/v1/tenants/$T/api-keys" \
   | python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["raw_key"])')
 echo "$NEW"
@@ -163,7 +165,7 @@ INSERT INTO api_keys (id, tenant_id, key_hash, key_prefix, name, scopes)
 VALUES (gen_random_uuid(),
         '00000000-0000-0000-0000-000000000001',
         '<hex sha256 of your new token>',
-        'admin', 'Rotated Admin', '{*}');
+        'admin', 'Rotated Admin', '{*,platform:admin}');
 DELETE FROM api_keys WHERE key_prefix = 'sentio_boot';
 ```
 
@@ -662,6 +664,13 @@ curl -X POST "$API/v1/tenants" -H "Authorization: Bearer $KEY" \
 curl -X POST "$API/v1/tenants/$NEW_TENANT_ID/api-keys" -H "Authorization: Bearer $KEY" \
   -H 'Content-Type: application/json' -d '{"name":"Acme production","scopes":["*"]}'
 ```
+
+Both calls need an operator key - one holding `platform:admin`, the scope that
+reaches tenants other than its own. A customer's key does not get it: `*` means
+"everything in this tenant", never "every tenant", and a key without
+`platform:admin` cannot mint one that has it. So the key handed to Acme above is
+free to carry `*` - it still sees only Acme, and `GET /v1/tenants` returns Acme
+alone rather than the customer list.
 
 Tiers (`dedicated`, `shared_premium`, `shared_standard`) select the isolation
 level, including whether the tenant sends from a dedicated IP pool. Rate limits,

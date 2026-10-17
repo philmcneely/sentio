@@ -8,7 +8,7 @@ use sentio_core::tenant::{TenantId, TenantStatus, TenantTier};
 use sentio_core::traits::{TenantRecord, TenantRepository, TenantUpdate};
 use sentio_store::postgres::PgTenantRepository;
 
-use crate::auth::AuthContext;
+use crate::auth::{AuthContext, PLATFORM_ADMIN_SCOPE};
 use crate::errors::{ApiError, ErrorResponse};
 use crate::response::{data, DataResponse};
 use crate::state::AppState;
@@ -98,7 +98,9 @@ pub async fn create_tenant(
     auth: AuthContext,
     Json(body): Json<CreateTenantRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
-    auth.require_scope("admin:tenants:write")?;
+    // A tenant being created belongs to no caller, so there is no path
+    // tenant to match and this is platform work. `*` does not reach it.
+    auth.require_scope(PLATFORM_ADMIN_SCOPE)?;
 
     if body.name.is_empty() {
         return Err(ApiError::Validation("name is required".into()));
@@ -132,10 +134,27 @@ pub async fn list_tenants(
 ) -> Result<impl IntoResponse, ApiError> {
     auth.require_scope("admin:tenants:read")?;
 
+    let repo = PgTenantRepository::new(state.pool.clone());
+
+    // Without the platform scope a session sees one tenant: its own.
+    // Listing every tenant on the host is how a tenant-level key used to
+    // enumerate its neighbours by name, tier and status.
+    if !auth.is_platform_admin() {
+        let record = repo.get(auth.tenant_id).await?;
+        let shown = match params.status {
+            Some(s) => s == record.status,
+            None => true,
+        };
+        let tenants: Vec<TenantResponse> = shown
+            .then(|| TenantResponse::from(record))
+            .into_iter()
+            .collect();
+        return Ok(data(tenants));
+    }
+
     let limit = params.limit.clamp(1, 1000);
     let offset = params.offset.max(0);
 
-    let repo = PgTenantRepository::new(state.pool.clone());
     let records = repo.list(params.status, limit, offset).await?;
     let tenants: Vec<TenantResponse> = records.into_iter().map(Into::into).collect();
 
@@ -163,6 +182,9 @@ pub async fn get_tenant(
     Path(id): Path<uuid::Uuid>,
 ) -> Result<impl IntoResponse, ApiError> {
     auth.require_scope("admin:tenants:read")?;
+    // The path tenant is client-controlled: only the authenticated
+    // session tenant may be addressed.
+    super::ensure_tenant_match(&auth, id)?;
 
     let repo = PgTenantRepository::new(state.pool.clone());
     let record = repo.get(TenantId(id)).await?;
@@ -192,6 +214,9 @@ pub async fn update_tenant_status(
     Json(body): Json<UpdateTenantStatusRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
     auth.require_scope("admin:tenants:write")?;
+    // The path tenant is client-controlled: only the authenticated
+    // session tenant may be addressed.
+    super::ensure_tenant_match(&auth, id)?;
 
     let repo = PgTenantRepository::new(state.pool.clone());
     repo.update_status(TenantId(id), body.status).await?;
@@ -222,6 +247,9 @@ pub async fn update_tenant(
     Json(body): Json<UpdateTenantRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
     auth.require_scope("admin:tenants:write")?;
+    // The path tenant is client-controlled: only the authenticated
+    // session tenant may be addressed.
+    super::ensure_tenant_match(&auth, id)?;
 
     let repo = PgTenantRepository::new(state.pool.clone());
     repo.update(
@@ -258,6 +286,10 @@ pub async fn delete_tenant(
     Path(id): Path<uuid::Uuid>,
 ) -> Result<impl IntoResponse, ApiError> {
     auth.require_scope("admin:tenants:write")?;
+    // The path tenant is client-controlled: only the authenticated
+    // session tenant may be addressed. A tenant may close its own
+    // account; destroying someone else's needs the platform scope.
+    super::ensure_tenant_match(&auth, id)?;
 
     let repo = PgTenantRepository::new(state.pool.clone());
     repo.delete(TenantId(id)).await?;

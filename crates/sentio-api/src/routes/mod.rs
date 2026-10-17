@@ -323,8 +323,13 @@ pub fn router(state: AppState) -> Router {
 /// session's tenant. The path tenant is client-controlled and must never
 /// be trusted for scoping — cross-tenant access is a 404 so existence of
 /// another tenant's resources is not leaked.
+///
+/// A `platform:admin` session is the exception, and has to be: giving a
+/// freshly created tenant its first API key means acting on a tenant
+/// that is not your own. `*` does not grant that scope, so a tenant
+/// cannot reach this branch by minting itself a wildcard key.
 pub fn ensure_tenant_match(auth: &AuthContext, path_tenant: uuid::Uuid) -> Result<(), ApiError> {
-    if auth.tenant_id.0 != path_tenant {
+    if auth.tenant_id.0 != path_tenant && !auth.is_platform_admin() {
         return Err(ApiError::NotFound("tenant".into()));
     }
     Ok(())

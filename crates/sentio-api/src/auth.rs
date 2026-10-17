@@ -13,6 +13,17 @@ use crate::state::AppState;
 // Auth context - extracted from Authorization: Bearer <token>
 // ──────────────────────────────────────────────────────────────────────────────
 
+/// The platform operator's scope. It reaches across tenant boundaries,
+/// so `*` deliberately does not grant it: a tenant may mint itself a
+/// wildcard key inside its own tenant, and that must not be a way out.
+pub const PLATFORM_ADMIN_SCOPE: &str = "platform:admin";
+
+/// A scope in the `platform:` namespace crosses tenants, so it is never
+/// covered by `*` and has to be written out on the key that holds it.
+fn is_platform_scope(scope: &str) -> bool {
+    scope.starts_with("platform:")
+}
+
 #[derive(Debug, Clone)]
 pub struct AuthContext {
     pub tenant_id: TenantId,
@@ -21,10 +32,37 @@ pub struct AuthContext {
 
 impl AuthContext {
     pub fn require_scope(&self, scope: &str) -> Result<(), ApiError> {
-        if self.scopes.iter().any(|s| s == scope || s == "*") {
+        let wildcard_covers = !is_platform_scope(scope);
+        if self
+            .scopes
+            .iter()
+            .any(|s| s == scope || (wildcard_covers && s == "*"))
+        {
             Ok(())
         } else {
             Err(ApiError::Auth(format!("missing required scope: {scope}")))
+        }
+    }
+
+    /// Whether this session may act on a tenant other than its own.
+    /// Checked by `routes::ensure_tenant_match`, which is what lets the
+    /// operator provision a tenant it does not belong to.
+    pub fn is_platform_admin(&self) -> bool {
+        self.scopes.iter().any(|s| s == PLATFORM_ADMIN_SCOPE)
+    }
+
+    /// Refuse to hand out a platform scope this session does not hold.
+    /// Without it, `admin:api_keys:write` within one tenant would be
+    /// enough to mint a key that leaves it.
+    pub fn require_grantable(&self, scopes: &[String]) -> Result<(), ApiError> {
+        if self.is_platform_admin() {
+            return Ok(());
+        }
+        match scopes.iter().find(|s| is_platform_scope(s.as_str())) {
+            Some(s) => Err(ApiError::Auth(format!(
+                "cannot grant scope {s}: this session does not hold it"
+            ))),
+            None => Ok(()),
         }
     }
 }
@@ -189,7 +227,8 @@ pub async fn warn_if_bootstrap_key_active(pool: &sqlx::PgPool) {
                 key_prefix = %record.key_prefix,
                 "refusing to start: the bootstrap admin API key shipped in \
                  migrations/002_bootstrap.sql is still active and publicly known \
-                 (full wildcard scope over every tenant). Rotate it manually \
+                 (wildcard scope plus platform:admin, so every tenant). \
+                 Rotate it manually \
                  (see README: 'bootstrap key') or set SENTIO_ALLOW_BOOTSTRAP_KEY=1 \
                  to start anyway for recovery (tenant: {})",
                 record.tenant_id

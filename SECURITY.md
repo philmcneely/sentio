@@ -17,7 +17,8 @@ configuration involved, and the impact you believe it has.
 A few defaults exist for convenience and are wrong for anything internet-facing:
 
 - **Rotate the bootstrap API key.** Migration `007` seeds
-  `sentio_bootstrap_admin_CHANGE_ME` with wildcard scope. Replace it via
+  `sentio_bootstrap_admin_CHANGE_ME` with wildcard and `platform:admin`
+  scope, which together reach every tenant. Replace it via
   `POST /v1/tenants/{id}/api-keys` and delete the original.
 - **Change the compose credentials.** `docker-compose.yml` ships development
   passwords for PostgreSQL and MinIO. They are fine on a laptop and unsafe
