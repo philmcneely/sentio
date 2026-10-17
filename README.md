@@ -66,7 +66,7 @@ around someone else's API.
 ## Quick start with Docker
 
 The compose stack brings up Sentio plus every service it needs: PostgreSQL,
-Redis, NATS/JetStream, MinIO, ClamAV, and rspamd.
+Redis, NATS/JetStream, SeaweedFS, ClamAV, and rspamd.
 
 **Requirements:** Docker Engine 24+ with the Compose plugin, ~4 GB RAM, ~8 GB disk.
 
@@ -177,7 +177,9 @@ DELETE FROM api_keys WHERE key_prefix = 'sentio_boot';
 | 465 | SMTPS | Implicit TLS - only binds when certificates are present |
 | 587 | Submission | STARTTLS |
 | 8080 | REST API | Also serves `/openapi.json` |
-| 9001 | MinIO console | Optional; remove from compose to hide |
+
+Nothing else is published. SeaweedFS keeps an admin UI on `:23646` inside the
+network; reach it with `docker compose port` or an ssh tunnel if you want it.
 
 Already running something on port 25 (Postfix, Exim)? Either stop it or remap,
 by creating a `docker-compose.override.yml`:
@@ -252,7 +254,7 @@ is unreachable. Install them before step 6, or run just those four from the
 compose file and keep Sentio itself on the host:
 
 ```bash
-docker compose up -d postgres redis nats minio
+docker compose up -d postgres redis nats seaweedfs
 ```
 
 **Optional services** - Sentio degrades gracefully if these are absent.

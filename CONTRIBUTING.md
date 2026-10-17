@@ -12,7 +12,7 @@ README for build dependencies. In short: a stable Rust toolchain, `cmake`,
 The fastest way to get the supporting services is the compose stack:
 
 ```bash
-docker compose up -d postgres redis nats minio
+docker compose up -d postgres redis nats seaweedfs
 ```
 
 The `sentio` service itself pulls `ghcr.io/truespar/sentio`. When testing your

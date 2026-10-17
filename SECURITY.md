@@ -21,13 +21,13 @@ A few defaults exist for convenience and are wrong for anything internet-facing:
   scope, which together reach every tenant. Replace it via
   `POST /v1/tenants/{id}/api-keys` and delete the original.
 - **Change the compose credentials.** `docker-compose.yml` ships development
-  passwords for PostgreSQL and MinIO. They are fine on a laptop and unsafe
+  passwords for PostgreSQL and SeaweedFS. They are fine on a laptop and unsafe
   anywhere else.
 - **Terminate TLS.** Without a certificate at `/etc/sentio/tls/` the server runs
   plaintext SMTP and does not bind port 465.
 - **Keep the metrics endpoint internal.** Prometheus metrics are unauthenticated
   and are not published by the compose stack.
-- **Do not expose the rspamd controller, MinIO console, or NATS monitoring
+- **Do not expose the rspamd controller, SeaweedFS admin UI, or NATS monitoring
   port** beyond your own network.
 
 ## Credentials in configuration

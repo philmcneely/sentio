@@ -2,7 +2,7 @@
 # Sentio SMTP - OSS quickstart config
 #
 # Bundled with the OSS Docker image. Points every backend at the docker-compose
-# service names (postgres / redis / nats / minio / clamav / rspamd / unbound).
+# service names (postgres / redis / nats / seaweedfs / clamav / rspamd / unbound).
 #
 # Every value below is overridable via SENTIO__SECTION__KEY environment
 # variables - the compose file uses that pattern for anything that varies
@@ -84,9 +84,9 @@ stream_max_age_secs = 86400
 dead_stream_max_age_secs = 2592000
 
 [storage]
-# MinIO in the compose stack. Point at any S3-compatible endpoint in
+# SeaweedFS in the compose stack. Point at any S3-compatible endpoint in
 # production (AWS S3, R2, B2, Wasabi, etc.) via SENTIO__STORAGE__* env vars.
-endpoint_url = "http://minio:9000"
+endpoint_url = "http://seaweedfs:8333"
 access_key = "sentio-dev"
 secret_key = "sentio-dev-secret-CHANGE_ME"
 bucket = "sentio-attachments"

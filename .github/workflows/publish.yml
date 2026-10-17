@@ -238,7 +238,7 @@ jobs:
             echo '```'
             echo
             echo "Or the full stack, which brings up PostgreSQL, Redis, NATS,"
-            echo "MinIO, ClamAV and rspamd alongside it:"
+            echo "SeaweedFS, ClamAV and rspamd alongside it:"
             echo
             echo '```bash'
             echo "git clone https://github.com/${IMAGE}.git && cd sentio"
