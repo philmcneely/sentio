@@ -7,6 +7,87 @@ reaches 1.0.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-17
+
+A security release. Three of its changes are breaking for an existing
+deployment and are marked below.
+
+### Security
+- Cross-tenant isolation on every `/v1/tenants/{id}/...` handler. The path
+  tenant is client-controlled and was taken at face value, so an admin key for
+  one tenant could read, change or delete another tenant's API keys, SMTP
+  credentials, inbound routes, IP pool assignments and the tenant row itself.
+  Handlers now go through `ensure_tenant_match`, which answers 404 rather than
+  403 so another tenant's resources do not announce their existence, and the
+  repository methods take the tenant and filter on it, so a guessed UUID is no
+  longer enough on its own.
+- `platform:admin`, a named scope for reach across tenants. `*` deliberately
+  does not cover it and a session cannot grant it unless it holds it, so a
+  tenant minting itself a wildcard key is not a way out of its tenant.
+  **BREAKING**: `POST /v1/tenants` now requires it, and `GET /v1/tenants`
+  returns only your own tenant without it. Migration `005` grants it to the
+  wildcard keys of the system tenant, which are the ones that already had the
+  reach, so an operator key carries across untouched.
+- **BREAKING**: `smtp_credentials.username` is globally unique (migration
+  `003`). SMTP AUTH resolves a credential by username alone - an
+  unauthenticated connection carries no tenant, and that lookup is what
+  establishes one - so two tenants both naming a credential "agent" handed
+  whichever row the database returned first one tenant's privileges to the
+  other. The migration prefixes cross-tenant duplicates with their tenant id;
+  those usernames stop authenticating until the SMTP client is updated.
+- The server refuses to start while the publicly-known bootstrap API key is
+  active, and also when it cannot prove the key is inactive, so a database
+  outage cannot quietly defeat the check. `SENTIO_ALLOW_BOOTSTRAP_KEY=1` is the
+  recovery hatch, and the compose stack sets it because the two cannot both
+  hold on a first run.
+- Dropped the legacy rustls 0.21 stack that `aws-sdk-s3` pulled in alongside
+  the modern one (RUSTSEC-2026-0346, -0349, no fix on that line) by taking the
+  SDK with `default-features = false`. HTTPS still comes from rustls 0.23.
+- Dropped `mail-auth`'s default `report` feature and the three zip advisories
+  with it (RUSTSEC-2026-0367, -0368, -0369). It is DMARC aggregate report
+  parsing; Sentio verifies DKIM, SPF, DMARC and ARC and never extracts an
+  archive.
+- A username conflict answers 409 instead of 500.
+
+### Changed
+- **BREAKING**: the compose stack's object store is SeaweedFS rather than
+  MinIO. MinIO's community edition was archived and its images withdrawn from
+  both Docker Hub and quay.io, so `docker compose up -d` could no longer pull
+  them. `weed mini` is master, volume server, filer and S3 gateway in one
+  process, which also retires the `mc` one-shot that created the bucket -
+  `ensure_bucket()` had always done that itself. Upgrading keeps the old
+  `minio_data` volume while Sentio talks to an empty store, so copy anything
+  you need out of it first; new installs are unaffected. Production can still
+  point `[storage]` at any S3-compatible endpoint, MinIO included.
+- Every dependency moved to its latest compatible version, utoipa 6 and
+  utoipa-scalar 0.4 among them. Each pinned image in the compose stack is on
+  its current release: NATS 2.15, rspamd 4.2.2, mailpit v1.31.6, SeaweedFS
+  4.48. rspamd and mailpit were tracking `latest`, so the stack you got
+  depended on the day you pulled it; a pin is reproducible and is something
+  dependabot can raise a pull request against.
+
+### Fixed
+- Delivery could park indefinitely. `TlsConnector::connect` has no timeout of
+  its own, so a remote that stalled after acknowledging `220 STARTTLS` held the
+  delivery future and leaked a per-domain pool permit; the STARTTLS upgrade,
+  each MX attempt and the whole handler now have timeouts, and an exhausted
+  handler returns `RetryAfter` so JetStream redelivers instead of losing the
+  task. The MTA-STS client gained timeouts for the same reason.
+- A 5xx without an enhanced code was read as a bad address, so a
+  Spamhaus-worded 550 or a "poor reputation" 554 flagged the recipient for
+  permanent suppression over a problem at our end. `classify_bounce` now reads
+  DNSBL, reputation and policy wording as a block.
+- A suppressed recipient produced no `message_events` row and no webhook, and
+  left the message `queued` for ever. Suppressions go through `record_outcome`
+  now, and a message whose every recipient is suppressed becomes `Dropped`.
+- The docs claimed Jev moves the spam score. It computes a delta and nothing
+  applies it; labelling depends on a route setting `llm_classify`, not on a
+  score band.
+
+### Removed
+- The GitHub Actions CI workflow. `./scripts/check.sh` and
+  `./scripts/e2e/run-e2e.sh` are the gate, run before a tag goes up.
+
 ## [0.1.6] - 2026-09-21
 
 ### Added

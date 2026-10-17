@@ -2506,9 +2506,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.190"
+version = "0.2.191"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce5d3ddc6d3fa000eb1536d85e147bfe31aacaba692ed6a876f95cb7c855be78"
+checksum = "65cd87c9a6d60536580b316ad985726104730a5151c99845f2490428ef91240a"
 
 [[package]]
 name = "libm"
@@ -3820,9 +3820,9 @@ dependencies = [
 
 [[package]]
 name = "schannel"
-version = "0.1.29"
+version = "0.1.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91c1b7e4904c873ef0710c1f407dde2e6287de2bebc1bbbf7d430bb7cbffd939"
+checksum = "9cb23c424d8ee841bb4d813677ca237e2a610067d594fec130f87d6093495ab5"
 dependencies = [
  "windows-sys 0.61.2",
 ]
@@ -3921,7 +3921,7 @@ checksum = "8a7852d02fc848982e0c167ef163aaff9cd91dc640ba85e263cb1ce46fae51cd"
 
 [[package]]
 name = "sentio-abuse"
-version = "0.1.6"
+version = "0.2.0"
 dependencies = [
  "chrono",
  "hickory-resolver",
@@ -3937,7 +3937,7 @@ dependencies = [
 
 [[package]]
 name = "sentio-api"
-version = "0.1.6"
+version = "0.2.0"
 dependencies = [
  "argon2",
  "axum",
@@ -3985,7 +3985,7 @@ dependencies = [
 
 [[package]]
 name = "sentio-auth"
-version = "0.1.6"
+version = "0.2.0"
 dependencies = [
  "base64 0.23.1",
  "chrono",
@@ -4004,7 +4004,7 @@ dependencies = [
 
 [[package]]
 name = "sentio-core"
-version = "0.1.6"
+version = "0.2.0"
 dependencies = [
  "bytes",
  "chrono",
@@ -4024,7 +4024,7 @@ dependencies = [
 
 [[package]]
 name = "sentio-llm"
-version = "0.1.6"
+version = "0.2.0"
 dependencies = [
  "reqwest",
  "sentio-core",
@@ -4038,7 +4038,7 @@ dependencies = [
 
 [[package]]
 name = "sentio-mcp"
-version = "0.1.6"
+version = "0.2.0"
 dependencies = [
  "reqwest",
  "rmcp",
@@ -4055,7 +4055,7 @@ dependencies = [
 
 [[package]]
 name = "sentio-observe"
-version = "0.1.6"
+version = "0.2.0"
 dependencies = [
  "metrics",
  "metrics-exporter-prometheus",
@@ -4068,7 +4068,7 @@ dependencies = [
 
 [[package]]
 name = "sentio-queue"
-version = "0.1.6"
+version = "0.2.0"
 dependencies = [
  "async-nats",
  "bytes",
@@ -4087,7 +4087,7 @@ dependencies = [
 
 [[package]]
 name = "sentio-smtp"
-version = "0.1.6"
+version = "0.2.0"
 dependencies = [
  "chrono",
  "clap",
@@ -4113,7 +4113,7 @@ dependencies = [
 
 [[package]]
 name = "sentio-smtp-client"
-version = "0.1.6"
+version = "0.2.0"
 dependencies = [
  "base64 0.23.1",
  "bytes",
@@ -4152,7 +4152,7 @@ dependencies = [
 
 [[package]]
 name = "sentio-smtp-server"
-version = "0.1.6"
+version = "0.2.0"
 dependencies = [
  "argon2",
  "base64 0.23.1",
@@ -4193,7 +4193,7 @@ dependencies = [
 
 [[package]]
 name = "sentio-spam"
-version = "0.1.6"
+version = "0.2.0"
 dependencies = [
  "regex",
  "reqwest",
@@ -4210,7 +4210,7 @@ dependencies = [
 
 [[package]]
 name = "sentio-storage"
-version = "0.1.6"
+version = "0.2.0"
 dependencies = [
  "aws-config",
  "aws-credential-types",
@@ -4233,7 +4233,7 @@ dependencies = [
 
 [[package]]
 name = "sentio-store"
-version = "0.1.6"
+version = "0.2.0"
 dependencies = [
  "base64 0.23.1",
  "chrono",
@@ -4254,7 +4254,7 @@ dependencies = [
 
 [[package]]
 name = "sentio-webhooks"
-version = "0.1.6"
+version = "0.2.0"
 dependencies = [
  "axum",
  "chrono",
@@ -5280,9 +5280,9 @@ checksum = "a2c754d6c33795a1c324727428e5a7dedb5b06195f9890bdbcba760d3e246563"
 
 [[package]]
 name = "unicode-normalization"
-version = "0.1.25"
+version = "0.1.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5fd4f6878c9cb28d874b009da9e8d183b5abc80117c40bbd187a1fde336be6e8"
+checksum = "75cd3fb03d5288b3ba9a1ee103ac7e9cbb59f0b03d64f8ddfcc04dd42758a85d"
 dependencies = [
  "tinyvec",
 ]
