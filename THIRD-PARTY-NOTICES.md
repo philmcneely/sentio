@@ -3022,7 +3022,7 @@ Used by `sketches-ddsketch 0.3.1`
 
 ## Apache License 2.0
 
-Used by `utoipa-gen 5.5.0`, `utoipa-scalar 0.3.0`, `utoipa 5.5.0`
+Used by `utoipa-gen 6.0.1`, `utoipa-scalar 0.4.0`, `utoipa 6.0.0`
 
 ```
                                  Apache License
