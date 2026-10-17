@@ -4,8 +4,9 @@ name: Publish image
 #
 # Deliberately NOT on pushes to main. `latest` has to mean "latest release",
 # otherwise `docker compose up -d` hands a first-time user whatever landed on
-# main an hour ago. Pushes to main are validated by ci.yml, which builds the
-# image without pushing it.
+# main an hour ago. Nothing validates main on GitHub - there is no CI workflow
+# here by choice. `./scripts/check.sh` and `./scripts/e2e/run-e2e.sh` are the
+# gate, and they run before a tag goes up.
 #
 # Each architecture is built on a native runner and merged into one manifest
 # afterwards: cross-building arm64 under QEMU turns a Rust release build into
